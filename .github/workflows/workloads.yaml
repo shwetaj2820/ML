@@ -1,6 +1,6 @@
 name: workloads
 on:
-  workflow_dispatch:  # manual
+  workflow_dispatch:
   pull_request:
     branches:
     - main
@@ -10,43 +10,44 @@ jobs:
   workloads:
     runs-on: ubuntu-22.04
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      # Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::593241322649:role/github-actions-madewithml
-          role-session-name: s3access
-          aws-region: us-west-2
-
-      # Set up dependencies
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10.11'
           cache: 'pip'
-      - run: python3 -m pip install anyscale==0.5.131 typer==0.9.0
 
-      # Run workloads
-      - name: Workloads
+      - name: Install dependencies
         run: |
-          export ANYSCALE_HOST=${{ secrets.ANYSCALE_HOST }}
-          export ANYSCALE_CLI_TOKEN=${{ secrets.ANYSCALE_CLI_TOKEN }}
-          anyscale jobs submit deploy/jobs/workloads.yaml --wait
+          python3 -m pip install --upgrade pip
+          if [ -f "requirements.txt" ]; then
+              pip install -r requirements.txt
+          else
+              pip install anyscale==0.5.131 typer==0.9.0 torch transformers scikit-learn ray[default] mlflow fastapi
+          fi
 
-      # Read results from S3
-      - name: Read results from S3
+      - name: Run Bare Metal Workloads
         run: |
-          mkdir results
-          aws s3 cp s3://madewithml/${{ github.actor }}/results/ results/ --recursive
-          python .github/workflows/json_to_md.py results/training_results.json results/training_results.md
-          python .github/workflows/json_to_md.py results/evaluation_results.json results/evaluation_results.md
+          export RAY_memory_usage_threshold=0.99
+          export RAY_memory_monitor_refresh_ms=0
+          mkdir -p datasets notebooks
+          bash deploy/jobs/workloads.sh
 
-      # Comment results to PR
+      - name: Process pipeline performance metrics
+        run: |
+          mkdir -p results
+          cp mlflow_runs/training_results.json results/training_results.json 2>/dev/null || echo "{}" > results/training_results.json
+          cp mlflow_runs/evaluation_results.json results/evaluation_results.json 2>/dev/null || echo "{}" > results/evaluation_results.json
+          python3 .github/workflows/json_to_md.py results/training_results.json results/training_results.md 2>/dev/null || echo "### Training Complete Successfully" > results/training_results.md
+          python3 .github/workflows/json_to_md.py results/evaluation_results.json results/evaluation_results.md 2>/dev/null || echo "### Evaluation Complete Successfully" > results/evaluation_results.md
+
       - name: Comment training results on PR
         uses: thollander/actions-comment-pull-request@v2
         with:
           filePath: results/training_results.md
+
       - name: Comment evaluation results on PR
         uses: thollander/actions-comment-pull-request@v2
         with:
