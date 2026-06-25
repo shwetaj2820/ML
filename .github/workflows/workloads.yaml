@@ -33,7 +33,7 @@ jobs:
           export RAY_memory_usage_threshold=0.99
           export RAY_memory_monitor_refresh_ms=0
           mkdir -p datasets notebooks
-          bash deploy/jobs/workloads.sh
+          bash run_pipeline.sh
 
       - name: Process pipeline performance metrics
         run: |
