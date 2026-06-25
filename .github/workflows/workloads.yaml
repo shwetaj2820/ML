@@ -37,11 +37,8 @@ jobs:
 
       - name: Process pipeline performance metrics
         run: |
-          mkdir -p results
-          cp mlflow_runs/training_results.json results/training_results.json 2>/dev/null || echo "{}" > results/training_results.json
-          cp mlflow_runs/evaluation_results.json results/evaluation_results.json 2>/dev/null || echo "{}" > results/evaluation_results.json
-          python3 .github/workflows/json_to_md.py results/training_results.json results/training_results.md 2>/dev/null || echo "### Training Complete Successfully" > results/training_results.md
-          python3 .github/workflows/json_to_md.py results/evaluation_results.json results/evaluation_results.md 2>/dev/null || echo "### Evaluation Complete Successfully" > results/evaluation_results.md
+          python3 .github/workflows/json_to_md.py results/training_results.json results/training_results.md
+          python3 .github/workflows/json_to_md.py results/evaluation_results.json results/evaluation_results.md
 
       - name: Comment training results on PR
         uses: thollander/actions-comment-pull-request@v2
