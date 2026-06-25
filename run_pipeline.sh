@@ -14,8 +14,7 @@ echo "step 1- model training: "
 python3 -c "import json; from madewithml.train import train_model; train_model(experiment_name='llm', dataset_loc='local_dataset.csv', train_loop_config='{\"dropout_p\": 0.5, \"lr\": 1e-4, \"lr_factor\": 0.8, \"lr_patience\": 3}', num_workers=1, cpu_per_worker=1, gpu_per_worker=0, num_epochs=3, batch_size=32, results_fp='results/training_results.json')"
 
 echo "step 2- extraction of best Run ID: "
-export RAW_RUN_ID=$(python3 -c "from madewithml.predict import get_best_run_id; print(get_best_run_id(experiment_name='llm', metric='val_loss', mode='ASC'))")
-export BEST_RUN_ID=$(echo "$RAW_RUN_ID" | tr -d '\r\n[:space:]')
+export BEST_RUN_ID=$(python3 -c "from madewithml.predict import get_best_run_id; print(get_best_run_id(experiment_name='llm', metric='val_loss', mode='ASC'))" | tail -n 1)
 echo "Target Run ID: $BEST_RUN_ID"
 
 echo "step 3- evaluation against holdout dataset: "
